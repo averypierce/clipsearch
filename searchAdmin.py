@@ -146,18 +146,15 @@ def rebuildSearchTable(conn):
 		])
 	conn.commit()
 
-def extractSubs(dir,show,season = None):
-	conn = sqlite3.connect(dbName)
-	c = conn.cursor()
+def extractSubs(conn,dir,show,season = None):
 
+	c = conn.cursor()
 	c.execute(("SELECT paths,srt FROM bigtable WHERE showname = (?)"),[show])
-	if(c):
+	if c:
 		results = c.fetchall()
-		for path,srt in results:
-			
+		for path,srt in results:			
 			parse = re.search(r".+\/(.+S\d{2}E\d{2}.+)\.",path)
 			if parse:
-
 				#some things are still being stored as binary instead plaintext in db
 				try:
 					title = parse.group(1)
@@ -166,11 +163,9 @@ def extractSubs(dir,show,season = None):
 						with open(dir + title + ".srt", "wb") as sub:
 							print("binary sub detected, converting..?")
 							sub.write(srt)
-
 					else:
 						with open(dir + title + ".srt", "wb") as sub:
-							sub.write(bytes(srt,"utf-8"))
-						
+							sub.write(bytes(srt,"utf-8"))						
 				except:
 					pass
 
@@ -180,7 +175,8 @@ def printShows(conn):
 	matches = c.fetchall()
 	print(matches)
 
-def commandParse(arg,conn,dbName):
+def commandParse(arg,conn,paths):
+	dbName = paths[0]
 	print(arg)
 	if arg[0] == 'display':
 		printShows(conn)
@@ -192,6 +188,15 @@ def commandParse(arg,conn,dbName):
 		name = input("show name: ")
 		path = input("path: ")
 		temp = tvShow(name,path,dbName)
+
+	elif arg[0] == 'import_srt':
+		#name = input("show name: ")
+		#path = input("subtitle path: ")
+		temp = subUpdateFromFile(conn,paths[1])
+
+	elif arg[0] == 'extract':
+		name = input("show name: ")
+		temp = extractSubs(conn,paths[1],name)
 
 
 def main():
@@ -207,6 +212,7 @@ def main():
 
 	rootdir = myConfig.rootdir
 	dbName = myConfig.dbName
+	extractSubs = myConfig.extractSubs
 
 	try:
 		conn = sqlite3.connect(dbName)
@@ -227,7 +233,7 @@ def main():
 	while conn:
 		term = input("$-$> ")
 		term = term.split()
-		commandParse(term,conn,dbName)
+		commandParse(term,conn,[dbName,extractSubs])
 
 
 	#

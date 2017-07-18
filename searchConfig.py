@@ -5,7 +5,7 @@ import configparser
 class tvConfig:
 
 	def __init__(self,configPath):
-		self.vlc,self.rootdir,self.dbName = self.loadConfig(configPath)
+		self.vlc,self.rootdir,self.dbName,self.extractSubs = self.loadConfig(configPath)
 
 	def loadConfig(self,configPath):
 
@@ -28,6 +28,7 @@ class tvConfig:
 				rootdir = config['PATHS']['videoDir']
 				dbName = config['PATHS']['db']
 				vlc = config['PATHS']['VLC']
+				extractSubs = config['PATHS']['subExport']
 			except:
 				pass
 
@@ -45,7 +46,7 @@ class tvConfig:
 			print("Check your config! exiting...")
 			#sys.exit(1)
 
-		return vlc,rootdir,dbName
+		return vlc,rootdir,dbName,extractSubs
 
 def sqlRun(conn,command,args = None):
 
