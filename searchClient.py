@@ -94,10 +94,7 @@ def nearSearch(keywords,conn):
 	nsearch = nsearch + '\"\''
 	c = searchConfig.sqlRun(conn,nsearch)
 	temp = c.fetchall()
-
-	print("crmron")
 	tmatches = matches(temp)
-	print("Whtf")
 	return tmatches
 
 def main():
