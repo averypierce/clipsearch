@@ -36,21 +36,28 @@ def getSceneTime(srt,index,preamble,secondsOffset = 0):
 	milliseconds = int(timecode.group(1)[::-1])
 
 	return hours*3600 + minutes*60 + seconds - secondsOffset
+
 	
-def VLC(vlc,path,timeIndex):
+def VLC(vlc,path,timeIndex,platform):
 
 	try:
-		os.chdir("/mnt/c/Users/Avery/")	
-		videoPath = path.replace("/mnt/f","F:")
-		videoPath = videoPath.replace("/",'''\\''')	
+		#print("Launching",path,"\n")
+		if platform == 'mixed':
+			os.chdir("/mnt/c/Users") #chdir to suppress 'unable to translate working directory message'
+			parse = re.search(r"(\/mnt\/(.))",path)
+			driveLetter = parse.group(2)
+			driveLetter = driveLetter.upper() + ":"						
+			videoPath = path.replace(parse.group(1),driveLetter)
+			#print(videoPath)
+			videoPath = videoPath.replace("/",'''\\''')	
 		command = '"' + vlc + '" "' + videoPath + '" --start-time=' + str(timeIndex)
-		#print("final command:",command)
+		print("final command:",command)
 		subprocess.call(command,shell=True)
 	except:
 		print("Error launching VLC")
 		print(command)
 
-#Wrapper for list to give special print function
+
 class matches:
 
 	def __init__(self,matchlist):
@@ -62,8 +69,9 @@ class matches:
 	def getChoice(self,choice):
 		path = self.matchlist[choice][3]
 		pos = int(self.matchlist[choice][4].split()[2])
-		t = self.matchlist[choice][1].replace("'","")
-		return path,pos,t
+		srt = self.matchlist[choice][1].replace("'","")
+		timeIndex = getSceneTime(srt,pos,1)
+		return path,timeIndex,srt
 
 	def length(self):
 		return len(self.matchlist)
@@ -93,8 +101,7 @@ def nearSearch(keywords,conn):
 		count = count + 1
 	nsearch = nsearch + '\"\''
 	c = searchConfig.sqlRun(conn,nsearch)
-	temp = c.fetchall()
-	tmatches = matches(temp)
+	tmatches = matches(c.fetchall())
 	return tmatches
 
 def main():
@@ -106,6 +113,7 @@ def main():
 	vlc = myConfig.vlc
 	rootdir = myConfig.rootdir
 	dbName = myConfig.dbName
+	platform = myConfig.platform
 
 	try:
 		conn = sqlite3.connect(dbName)
@@ -121,15 +129,13 @@ def main():
 
 			if matches:
 				matches.print()
-
 				if(matches.length()>1):
 					choice = int(input("Type digit for desired episode and press enter: "))
 					if(choice <= matches.length()):
-						path,pos,t = matches.getChoice(choice)
-						
-				timeIndex = getSceneTime(t,pos,1)
-				#print("Launching",path,"\n")
-				VLC(vlc,path,int(timeIndex))
+						path,timeIndex,srt = matches.getChoice(choice)
+				else:
+					path,timeIndex,srt = matches.getChoice(0)
+				VLC(vlc,path,int(timeIndex),platform)
 			else:
 				print("No matches.\n")
 			
