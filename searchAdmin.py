@@ -1,3 +1,7 @@
+
+# Avery VanKirk 2017
+# tv show clip searcher
+
 import requests
 from bs4 import BeautifulSoup
 import subtitle_downloader

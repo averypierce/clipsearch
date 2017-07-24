@@ -1,3 +1,6 @@
+
+# Avery VanKirk 2017
+# tv show clip searcher
 import sqlite3
 import os
 import sys
@@ -10,6 +13,7 @@ import searchConfig
 def signal_handler(signal, frame):
 	print('\nctrl+c detectd, exiting')
 	sys.exit(0)
+	
 #takes a srt as string, searches for timecodes backward from supplied index position
 #Set preamble to number of subtitle lines you want to play ahead of your search term
 def getSceneTime(srt,index,preamble,secondsOffset = 0):
@@ -46,6 +50,55 @@ def VLC(vlc,path,timeIndex):
 		print("Error launching VLC")
 		print(command)
 
+#Wrapper for list to give special print function
+class matches:
+
+	def __init__(self,matchlist):
+		self.matchlist = matchlist
+
+	def __str__(self):
+		return str(self.matchlist)
+
+	def getChoice(self,choice):
+		path = self.matchlist[choice][3]
+		pos = int(self.matchlist[choice][4].split()[2])
+		t = self.matchlist[choice][1].replace("'","")
+		return path,pos,t
+
+	def length(self):
+		return len(self.matchlist)
+
+	def print(self):
+		print("\nEpisodes Matches:\n-----")
+		for i,hit in enumerate(self.matchlist):
+			print(str(i)+") ",end="")
+			print(hit[5],hit[0],end="")
+			try:
+				parse = re.search(r".+\/.+S\d{2}E\d{2}(.+)\.",hit[3])
+				print(parse.group(1))
+			except:
+				print(hit[3])
+		print("-----")
+
+
+
+def nearSearch(keywords,conn):
+
+	nsearch = "SELECT epcode,srt,length,paths,offsets(searchable),showName FROM searchable WHERE searchable MATCH '"
+	count = 1
+	for word in keywords:
+		nsearch = nsearch + '' '"''' + word
+		if count < len(keywords):
+			nsearch = nsearch + '" NEAR/2 '
+		count = count + 1
+	nsearch = nsearch + '\"\''
+	c = searchConfig.sqlRun(conn,nsearch)
+	temp = c.fetchall()
+
+	print("crmron")
+	tmatches = matches(temp)
+	print("Whtf")
+	return tmatches
 
 def main():
 
@@ -65,48 +118,18 @@ def main():
 
 	while conn:
 
-		try:
-			nsearch = "SELECT epcode,srt,length,paths,offsets(searchable),showName FROM searchable WHERE searchable MATCH '"
-			oterm = input("Enter a search term: ")
-			term = oterm.split()
-			count = 1
-			for word in term:
-				nsearch = nsearch + '' '"''' + word
-				if count < len(term):
-					nsearch = nsearch + '" NEAR/2 '
-				count = count + 1
-
-			nsearch = nsearch + '\"\''
-			c = searchConfig.sqlRun(conn,nsearch)
-			matches = c.fetchall()
+		try:			
+			keywords = input("Enter a search term: ").split()
+			matches = nearSearch(keywords,conn)
 
 			if matches:
-				print("\nEpisodes Matches:\n-----")
-				for i,hit in enumerate(matches):
-					print(str(i)+") ",end="")
+				matches.print()
 
-					print(hit[5],hit[0],end="")
-					try:
-						parse = re.search(r".+\/.+S\d{2}E\d{2}(.+)\.",hit[3])
-						print(parse.group(1))
-					except:
-						print(hit[3])					
-
-				print("-----")
-				result = matches[0]
-				epLength = int(result[2])
-				path = result[3]
-				pos = int(result[4].split()[2])
-				t = result[1].replace("'","")
-				total = len(t)
-
-				if(len(matches)>1):
+				if(matches.length()>1):
 					choice = int(input("Type digit for desired episode and press enter: "))
-					if(choice <= len(matches)):
-						path = matches[choice][3]
-						pos = int(matches[choice][4].split()[2])
-						t = matches[choice][1].replace("'","")
-
+					if(choice <= matches.length()):
+						path,pos,t = matches.getChoice(choice)
+						
 				timeIndex = getSceneTime(t,pos,1)
 				#print("Launching",path,"\n")
 				VLC(vlc,path,int(timeIndex))

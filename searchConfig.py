@@ -1,3 +1,6 @@
+# Avery VanKirk 2017
+# tv show clip searcher
+
 import os
 import sys
 import configparser

@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+
+#Original Subtitle downloader: https://github.com/manojmj92/subtitle-downloader
+
 #-------------------------------------------------------------------------------
 # Name      : subtitle downloader
 # Purpose   : One step subtitle download
